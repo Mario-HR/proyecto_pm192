@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from db.connection import engine,Base
 
 from fastapi.middleware.cors import CORSMiddleware
+from routers.users import usersRouter
 
 #Personalizacuón del encabezado de la documentación
 app=FastAPI(
@@ -17,3 +18,5 @@ app.add_middleware(
     allow_headers=['*']
 )
 Base.metadata.create_all(bind=engine)
+
+app.include_router(usersRouter)
