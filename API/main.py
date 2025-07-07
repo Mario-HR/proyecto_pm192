@@ -7,6 +7,7 @@ from routers.transactions import router as transactionsRouter
 from routers.scheduled_transactions import router as scheduledTransactionsRouter
 from routers.categories import router as categoriesRouter
 from routers.charts import router as chartsRouter
+from routers.budgets import router as budgetsRouter
 
 #Personalizacuón del encabezado de la documentación
 app=FastAPI(
@@ -28,3 +29,4 @@ app.include_router(transactionsRouter)
 app.include_router(scheduledTransactionsRouter)
 app.include_router(categoriesRouter)
 app.include_router(chartsRouter)
+app.include_router(budgetsRouter)
