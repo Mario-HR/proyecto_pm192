@@ -3,6 +3,10 @@ from db.connection import engine,Base
 
 from fastapi.middleware.cors import CORSMiddleware
 from routers.users import usersRouter
+from routers.transactions import router as transactionsRouter
+from routers.scheduled_transactions import router as scheduledTransactionsRouter
+from routers.categories import router as categoriesRouter
+from routers.charts import router as chartsRouter
 
 #Personalizacuón del encabezado de la documentación
 app=FastAPI(
@@ -20,3 +24,7 @@ app.add_middleware(
 Base.metadata.create_all(bind=engine)
 
 app.include_router(usersRouter)
+app.include_router(transactionsRouter)
+app.include_router(scheduledTransactionsRouter)
+app.include_router(categoriesRouter)
+app.include_router(chartsRouter)
