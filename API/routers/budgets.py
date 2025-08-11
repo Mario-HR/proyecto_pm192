@@ -1,21 +1,23 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from fastapi.responses import JSONResponse
 from fastapi.encoders import jsonable_encoder
 from typing import List
 from db.connection import Session
 from models.db import Budgets
 from models.pydantic import Budget
+from utils import getIdFromToken, convertSpecialTypes
 
 router = APIRouter(prefix="/budgets", tags=["Budgets"])
 
 @router.post("/add", response_model=Budget)
-def create_budget(budget: Budget):
+def create_budget(budget: Budget, user_id:int = Depends(getIdFromToken)):
     db=Session()
     try:
-        query = Budgets(**budget.model_dump())
+        query = Budgets(**budget.model_dump(), user=user_id)
         db.add(query)
         db.commit()
-        return JSONResponse(status_code=200,content={"message": "Presupuesto guardado", "budget": budget.model_dump})
+        budget_data = convertSpecialTypes(budget.model_dump())
+        return JSONResponse(status_code=200,content={"message": "Presupuesto guardado", "budget": budget_data})
     except Exception as e:
         db.rollback()
         return JSONResponse(status_code=500,content={"message": "Error al guardar el presupuesto", "Exception": str(e)})
@@ -23,10 +25,10 @@ def create_budget(budget: Budget):
         db.close()
 
 @router.get("/", response_model=List[Budget])
-def get_budgets():
+def get_budgets(user_id:int = Depends(getIdFromToken)):
     db=Session()
     try:
-        query = db.query(Budgets).all()
+        query = db.query(Budgets).filter(Budgets.user==user_id).all()
         if query:
             return JSONResponse(status_code=200, content=jsonable_encoder(query))
         else:
@@ -60,7 +62,7 @@ def update_budget(budget_id: int, updated_data: Budget):
         for field, value in updated_data.dict().items():
             setattr(query, field, value)
         db.commit()
-        return JSONResponse(content={"message": "Presupesto actualizado", "presupuesto": updated_data.model_dump()})
+        return JSONResponse(status_code=200, content={"message": "Presupesto actualizado", "presupuesto": updated_data.model_dump()})
     except Exception as e:
         return JSONResponse(status_code=500, content={"message": "Error al modificar el presupuesto", "Exception": str(e)})
     finally:

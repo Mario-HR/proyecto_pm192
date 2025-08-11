@@ -43,5 +43,6 @@ class Budgets(Base):
     user=Column(Integer,ForeignKey('Users.id'))
     amount=Column(Numeric(10,2),nullable=False)
     description=Column(String,nullable=False)
+    year=Column(Integer,nullable=False)
     month=Column(Integer,nullable=False)
     category=Column(Integer,ForeignKey('Categories.id'))

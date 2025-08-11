@@ -4,6 +4,7 @@ from db.connection import Session as SessionLocal
 from models.db import Transactions
 from models.pydantic import Transaction
 from typing import List
+from utils import getIdFromToken
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -16,16 +17,16 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=Transaction)
-def create_transaction(transaction: Transaction, db: Session = Depends(get_db)):
-    db_transaction = Transactions(**transaction.dict())
+def create_transaction(transaction: Transaction, db: Session = Depends(get_db), user_id:int = Depends(getIdFromToken)):
+    db_transaction = Transactions(**transaction.dict(), user=user_id)
     db.add(db_transaction)
     db.commit()
     db.refresh(db_transaction)
     return db_transaction
 
 @router.get("/", response_model=List[Transaction])
-def get_transactions(db: Session = Depends(get_db)):
-    return db.query(Transactions).all()
+def get_transactions(db: Session = Depends(get_db), user_id:int = Depends(getIdFromToken)):
+    return db.query(Transactions).filter(Transactions.user==user_id).all()
 
 @router.get("/{transaction_id}", response_model=Transaction)
 def get_transaction(transaction_id: int, db: Session = Depends(get_db)):

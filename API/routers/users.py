@@ -1,12 +1,10 @@
 from fastapi import Depends
 from fastapi.responses import JSONResponse
-from fastapi.encoders import jsonable_encoder
 from models.pydantic import User
-from middleware import BearerJWT
 from db.connection import Session
 from models.db import Users
 from fastapi import APIRouter
-from passwords import cypherPassword,checkPassword
+from utils import cypherPassword, checkPassword, createToken
 
 usersRouter = APIRouter()
 
@@ -18,9 +16,10 @@ def validateUser(user:User):
         if user.email:
             userQuery=db.query(Users).filter(Users.email==user.email).first()
         elif user.phone:
-            userQuery=db.query(Users).filter(Users.phone==user.email).first()
+            userQuery=db.query(Users).filter(Users.phone==user.phone).first()
         if checkPassword(user.password,userQuery.password):
-            return JSONResponse(status_code=200,content={"message": "Autenticación exitosa"})
+            token=createToken(user.model_dump())
+            return JSONResponse(status_code=200,content=token)
         else:
             return JSONResponse(status_code=401,content={"message": "Correo o contraseña incorrectos"})
     except Exception as e:
