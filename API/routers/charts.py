@@ -1,10 +1,11 @@
 from fastapi import APIRouter, Depends
+from typing import List
 from sqlalchemy.orm import Session
-from sqlalchemy import func, extract
+from sqlalchemy import func, and_
 from db.connection import Session as SessionLocal
 from models.db import Transactions, Categories
-from typing import List
-from datetime import datetime
+from decimal import Decimal
+from utils import getIdFromToken
 
 router = APIRouter(prefix="/api", tags=["Gráficas"])
 
@@ -16,7 +17,7 @@ def get_db():
         db.close()
 
 # Función compartida para ingresos o gastos
-def obtener_datos_grafica(tipo: str, db: Session):
+def obtener_datos_grafica(tipo: str, db: Session, user_id: int):
     query = (
         db.query(
             func.strftime("%Y-%m", Transactions.datetime).label("mes"),
@@ -24,19 +25,39 @@ def obtener_datos_grafica(tipo: str, db: Session):
             func.sum(Transactions.amount).label("total")
         )
         .join(Categories, Transactions.category == Categories.id)
-        .filter(Transactions.amount > 0 if tipo == "ingreso" else Transactions.amount < 0)
-        .group_by("mes", "categoria")
-        .order_by("mes")
     )
-    return [
+    # Condición según tipo
+
+    if tipo == "ingreso":
+        condicion_tipo = Transactions.amount > Decimal(0)
+    else:
+        condicion_tipo = Transactions.amount < Decimal(0)
+
+    query = query.filter(
+        and_(
+            condicion_tipo,
+            Transactions.user == user_id
+        )
+    )
+
+    query = query.group_by(
+        func.strftime("%Y-%m", Transactions.datetime),
+        Categories.name
+    ).order_by(
+        func.strftime("%Y-%m", Transactions.datetime)
+    )
+
+    resultados = [
         {"mes": row.mes, "categoria": row.categoria, "total": float(abs(row.total))}
         for row in query.all()
     ]
+    print(resultados)
+    return resultados
 
-@router.get("/graficaIngresos")
-def grafica_ingresos(db: Session = Depends(get_db)):
-    return obtener_datos_grafica("ingreso", db)
+@router.get("/graficaIngresos", response_model=List)
+def grafica_ingresos(db: Session = Depends(get_db), user_id:int = Depends(getIdFromToken)):
+    return obtener_datos_grafica("ingreso", db, user_id)
 
-@router.get("/graficaGastos")
-def grafica_gastos(db: Session = Depends(get_db)):
-    return obtener_datos_grafica("gasto", db)
+@router.get("/graficaGastos", response_model=List)
+def grafica_gastos(db: Session = Depends(get_db), user_id:int = Depends(getIdFromToken)):
+    return obtener_datos_grafica("gasto", db, user_id)

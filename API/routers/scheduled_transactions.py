@@ -4,6 +4,7 @@ from typing import List
 from db.connection import Session as SessionLocal
 from models.db import ScheduledTransactions
 from models.pydantic import ScheduledTransaction
+from utils import getIdFromToken
 
 router = APIRouter(prefix="/scheduled-transactions", tags=["Scheduled Transactions"])
 
@@ -17,13 +18,13 @@ def get_db():
 
 # 1. Obtener todos los pagos fijos
 @router.get("/", response_model=List[ScheduledTransaction])
-def obtener_pagos_fijos(db: Session = Depends(get_db)):
-    return db.query(ScheduledTransactions).all()
+def obtener_pagos_fijos(db: Session = Depends(get_db), user_id:int = Depends(getIdFromToken)):
+    return db.query(ScheduledTransactions).filter(ScheduledTransactions.user==user_id).all()
 
 # 2. Registrar un nuevo pago fijo
 @router.post("/", response_model=ScheduledTransaction)
-def registrar_pago_fijo(pago: ScheduledTransaction, db: Session = Depends(get_db)):
-    nuevo_pago = ScheduledTransactions(**pago.dict())
+def registrar_pago_fijo(pago: ScheduledTransaction, db: Session = Depends(get_db), user_id:int = Depends(getIdFromToken)):
+    nuevo_pago = ScheduledTransactions(**pago.dict(), user=user_id)
     db.add(nuevo_pago)
     db.commit()
     db.refresh(nuevo_pago)
