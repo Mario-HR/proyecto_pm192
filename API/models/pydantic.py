@@ -32,5 +32,6 @@ class ScheduledTransaction(BaseModel):
 class Budget(BaseModel):
     amount:Decimal = Field(...,decimal_places=2,description="Monto del presupuesto")
     description:str = Field(...,description="Descripción del presupuesto")
+    year:int = Field(...,description="Año del presupuesto")
     month:int = Field(...,description="Mes del presupuesto")
     category:int = Field(...,description="ID de la categoría")
