@@ -40,17 +40,45 @@ def obtener_pago_fijo(pago_fijo_id: int, db: Session = Depends(get_db)):
 
 # 4. Editar un pago fijo existente
 @router.put("/{pago_fijo_id}", response_model=ScheduledTransaction)
-def editar_pago_fijo(pago_fijo_id: int, pago_actualizado: ScheduledTransaction, db: Session = Depends(get_db)):
-    pago = db.query(ScheduledTransactions).get(pago_fijo_id)
+def editar_pago_fijo(
+    pago_fijo_id: int,
+    pago_actualizado: ScheduledTransaction,
+    db: Session = Depends(get_db),
+    user_id: int = Depends(getIdFromToken),
+):
+    # Asegura que el pago fijo sea del usuario logueado
+    pago = (
+        db.query(ScheduledTransactions)
+        .filter(ScheduledTransactions.id == pago_fijo_id,
+                ScheduledTransactions.user == user_id)
+        .first()
+    )
     if not pago:
         raise HTTPException(status_code=404, detail="Pago fijo no encontrado")
 
-    for campo, valor in pago_actualizado.dict().items():
+    # No tocar id ni user; no mandar None
+    data = pago_actualizado.dict(exclude={"id", "user"}, exclude_unset=True)
+    for campo, valor in list(data.items()):
+        if valor is None:
+            continue
+        if campo == "amount":
+            try: valor = float(valor)
+            except: continue
+        elif campo in {"day", "category"}:
+            try: valor = int(valor)
+            except: continue
+        elif campo == "time" and isinstance(valor, str):
+            # Acepta "YYYY-MM-DDTHH:MM:SS(.sss)Z" o "HH:MM:SS(.sss)Z"
+            t = valor.replace("Z", "")
+            if "T" in t:
+                t = t.split("T", 1)[1]
+            valor = t  # guarda solo la parte de hora
         setattr(pago, campo, valor)
 
     db.commit()
     db.refresh(pago)
     return pago
+
 
 # 5. Eliminar un pago fijo
 @router.delete("/{pago_fijo_id}")

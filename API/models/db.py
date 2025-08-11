@@ -15,7 +15,6 @@ class Categories(Base):
     __tablename__="Categories"
     id=Column(Integer,primary_key=True,autoincrement="auto")
     name=Column(String,nullable=False)
-    description=Column(String)
     schedulable=Column(Boolean,nullable=False)
 
 class Transactions(Base):
@@ -42,7 +41,7 @@ class Budgets(Base):
     id=Column(Integer,primary_key=True,autoincrement="auto")
     user=Column(Integer,ForeignKey('Users.id'))
     amount=Column(Numeric(10,2),nullable=False)
-    description=Column(String,nullable=False)
-    year=Column(Integer,nullable=False)
+    description = Column(String, nullable=False, default="")
+    year = Column(Integer, nullable=False, default=lambda: datetime.utcnow().year)
     month=Column(Integer,nullable=False)
     category=Column(Integer,ForeignKey('Categories.id'))

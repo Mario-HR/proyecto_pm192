@@ -5,6 +5,10 @@ from models.db import Transactions
 from models.pydantic import Transaction
 from typing import List
 from utils import getIdFromToken
+from typing import Optional
+from pydantic import BaseModel
+from decimal import Decimal
+from datetime import datetime as Datetime
 
 router = APIRouter(prefix="/transactions", tags=["Transactions"])
 
@@ -35,18 +39,34 @@ def get_transaction(transaction_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
     return transaction
 
+class TransactionUpdate(BaseModel):
+    amount: Optional[Decimal] = None
+    datetime: Optional[Datetime] = None
+    description: Optional[str] = None
+    category: Optional[int] = None
+    
 @router.put("/{transaction_id}", response_model=Transaction)
-def update_transaction(transaction_id: int, updated_data: Transaction, db: Session = Depends(get_db)):
+def update_transaction(
+    transaction_id: int,
+    updated_data: TransactionUpdate,        # ← usa el esquema opcional
+    db: Session = Depends(get_db),
+):
     transaction = db.query(Transactions).get(transaction_id)
     if not transaction:
         raise HTTPException(status_code=404, detail="Transacción no encontrada")
 
-    for field, value in updated_data.dict().items():
+    # Solo campos enviados; jamás tocar id ni user
+    data = updated_data.model_dump(exclude_unset=True)
+    data.pop("id", None)
+    data.pop("user", None)
+
+    for field, value in data.items():
         setattr(transaction, field, value)
 
     db.commit()
     db.refresh(transaction)
     return transaction
+
 
 @router.delete("/{transaction_id}")
 def delete_transaction(transaction_id: int, db: Session = Depends(get_db)):
