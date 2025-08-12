@@ -15,14 +15,16 @@ def cypherPassword(plain_password):
     salt = gensalt()
     hashed = hashpw(password_bytes, salt)
     return hashed
-
+#Recibe un password en texto plano y un hash, devuelve True si coinciden
 def checkPassword(plain_password,hashed_password) -> bool:
     return checkpw(plain_password.encode('utf-8'),hashed_password)
-
+# Crea un token JWT con los datos del usuario
 def createToken(data:dict):
     token:str=jwt.encode(payload=data,key="secretkey",algorithm="HS256")
     return token
-
+# Obtiene el ID del usuario a partir del token JWT
+# Si el token es válido, devuelve el ID del usuario, si no, lanza una HTTPException
+# Si el token ha expirado, lanza una HTTPException con status 403
 def getIdFromToken(token:str):
     db=Session()
     try:
@@ -40,7 +42,9 @@ def getIdFromToken(token:str):
         raise HTTPException(status_code=403, detail="Token expirado")
     except InvalidTokenError:
         raise HTTPException(status_code=403, detail="Token invalido")
-    
+# Convierte tipos especiales de datos a formatos JSON serializables
+# Esta función es útil para serializar objetos que no son directamente serializables por JSON
+# como Decimal y datetime.
 def convertSpecialTypes(obj):
     if isinstance(obj, dict):
         return {k: convertSpecialTypes(v) for k, v in obj.items()}
